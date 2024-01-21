@@ -1,37 +1,9 @@
 import pygame
 from help import load_image, terminate
-from objects import Ground
+from objects import Ground, AnimatedSprite, Attack, Hero
 
 
-class Character(pygame.sprite.Sprite):
-    def __init__(self, sheet, columns, rows, x, y):
-        super().__init__(all_sprites)
-        self.frames = []
-        self.cut_sheet(sheet, columns, rows)
-        self.cur_frame = 0
-        self.image = self.frames[self.cur_frame]
-        self.rect = self.rect.move(x, y)
-        self.is_on_ground = False
-
-    def cut_sheet(self, sheet, columns, rows):
-        self.rect = pygame.Rect(0, 0, sheet.get_width() // columns,
-                                sheet.get_height() // rows)
-        for j in range(rows):
-            for i in range(columns):
-                frame_location = (self.rect.w * i, self.rect.h * j)
-                self.frames.append(sheet.subsurface(pygame.Rect(
-                    frame_location, self.rect.size)))
-
-    def update(self):
-        self.cur_frame = (self.cur_frame + 1) % len(self.frames)
-        self.image = self.frames[self.cur_frame]
-        self.is_on_ground = pygame.sprite.spritecollideany(self, ground_group)
-
-    def flip(self):
-        for frame in range(len(self.frames)):
-            self.frames[frame] = pygame.transform.flip(self.frames[frame], True, False)
-
-
+# Стартовый экран
 def start_screen():
     intro_text = ['Свет и Тьма',
                   'Жители Светогорода жили припеваючи,',
@@ -39,6 +11,7 @@ def start_screen():
                   "их поселение. Теперь в городе темно, а вам предстоит",
                   "разобраться с захватчиками!"]
 
+    # Отображение текста
     font = pygame.font.Font(None, 30)
     text_coord = 175
     for line in intro_text:
@@ -76,6 +49,7 @@ ground_img = load_image('ground.png')
 icon_img = load_image('icon.png')
 icon_img_scaled = pygame.transform.scale(icon_img, (150, 150))
 hero_img = load_image('hero.png')
+hit_img = pygame.transform.scale(load_image('hit.png'), (600, 100))
 
 # запуск игры
 if __name__ == '__main__':
@@ -85,14 +59,17 @@ if __name__ == '__main__':
     jump = False
     jumpcount = 0
     jumpmax = 12
+    game_screen = 0
+    health_points = 3
 
     # Создание групп спрайтов
     all_sprites = pygame.sprite.Group()
     ground_group = pygame.sprite.Group()
+    attack_group = pygame.sprite.Group()
 
     # Создание спрайтов
     Ground(ground_img, ground_group, all_sprites)  # Земля
-    hero = Character(hero_img, 9, 1, 100, 100)  # Персонаж
+    hero = Hero(hero_img, 9, 1, 100, 100, all_sprites)  # Персонаж
 
     # Запуск стартового окна
     start_screen()
@@ -102,9 +79,11 @@ if __name__ == '__main__':
     while running:
         screen.fill((38, 23, 82))
         for event in pygame.event.get():
+            # Проверка выхода
             if event.type == pygame.QUIT:
                 running = False
 
+            # Проверка нажатия кнопок движения
             if event.type == pygame.KEYDOWN:
                 print(event.key)
                 if event.key == 97:
@@ -112,32 +91,54 @@ if __name__ == '__main__':
                         hero.flip()
                         rotate = 'LEFT'
                     motion = 'LEFT'
+
                 if event.key == 100:
                     if rotate != 'RIGHT':
                         hero.flip()
                         rotate = 'RIGHT'
                     motion = 'RIGHT'
-                if not jump and event.key == 32:
+
+                if not jump and event.key == 119:
                     jump = True
                     jumpcount = jumpmax
 
+                # Создание атаки
+                if event.key == 32:
+                    if rotate == 'RIGHT':
+                        attack = Attack(hit_img, 4, 1, hero.rect.x + 100, hero.rect.y, all_sprites, attack_group)
+                    else:
+                        attack = Attack(hit_img, 4, 1, hero.rect.x - 150, hero.rect.y, all_sprites, attack_group)
+                        attack.flip()
+
+            # Проверка отпускания кнопок движения
             if event.type == pygame.KEYUP:
                 if event.key in [97, 100]:
                     motion = False
 
+        if hero.rect.x + 100 >= 800:
+            hero.rect.x = 15
+            hero.rect.y -= 5
+        if hero.rect.x <= 0:
+            hero.rect.x = 675
+            hero.rect.y -= 5
+
+        # Движение
         if motion == 'LEFT':
             hero.rect.x -= 10
         elif motion == 'RIGHT':
             hero.rect.x += 10
+
+        # Прыжок и падение
         if jump:
             hero.rect.y -= jumpcount
             if not jumpcount > -jumpmax:
                 jump = False
                 hero.is_on_ground = True
-            jumpcount -= 1.5
-        elif not hero.is_on_ground:
+            jumpcount -= 1
+        elif not pygame.sprite.spritecollideany(hero, ground_group):
             hero.rect.y += 5
 
+        # Обновление экрана
         all_sprites.update()
         all_sprites.draw(screen)
         pygame.display.flip()
