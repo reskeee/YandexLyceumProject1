@@ -2,6 +2,7 @@ import os
 import sys
 import pygame
 
+
 def terminate():
     pygame.quit()
     sys.exit()
@@ -22,5 +23,3 @@ def load_image(name, colorkey=None):
     else:
         image = image.convert_alpha()
     return image
-
-
