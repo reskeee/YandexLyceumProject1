@@ -1,6 +1,6 @@
 import pygame
 from help import load_image, terminate
-from objects import Ground, AnimatedSprite, Attack, Hero
+from objects import Ground, AnimatedSprite, Attack, Hero, Platform
 
 
 # Стартовый экран
@@ -36,6 +36,46 @@ def start_screen():
         clock.tick(FPS)
 
 
+# Завершающий экран
+def end_screen():
+    pass
+
+
+# Экран смерти
+def death_screen():
+    pass
+
+
+# Функция генерации уровня
+def generate_level(level_number: int):
+    level = levels[level_number]
+    platform_img = load_image('platform.png')
+    ground_group.empty()
+    Ground(ground_img, ground_group, all_sprites)  # Земля
+    for sprite in level['platforms']:
+        Platform(sprite[0], sprite[1], platform_img, ground_group)
+
+
+# Уровни
+level0 = {
+    'platforms': [(0, 0)]
+}
+
+level1 = {
+    'platforms': [(100, 0)]
+}
+
+level2 = {
+    'platforms': [(200, 0)]
+}
+
+level3 = {
+    'platforms': [(300, 0)]
+}
+
+levels = [level0, level1, level2, level3]
+
+
 # инициализация окна
 pygame.init()
 size = HEIGHT, WIDTH = 800, 450
@@ -50,17 +90,23 @@ icon_img = load_image('icon.png')
 icon_img_scaled = pygame.transform.scale(icon_img, (150, 150))
 hero_img = load_image('hero.png')
 hit_img = pygame.transform.scale(load_image('hit.png'), (600, 100))
+platform_png = load_image('platform.png')
+
 
 # запуск игры
 if __name__ == '__main__':
     running = True
     motion = False
+    velocity = 50
     rotate = 'RIGHT'
     jump = False
     jumpcount = 0
     jumpmax = 12
     game_screen = 0
     health_points = 3
+    level = 0
+    win = False
+    g = 1
 
     # Создание групп спрайтов
     all_sprites = pygame.sprite.Group()
@@ -68,7 +114,6 @@ if __name__ == '__main__':
     attack_group = pygame.sprite.Group()
 
     # Создание спрайтов
-    Ground(ground_img, ground_group, all_sprites)  # Земля
     hero = Hero(hero_img, 9, 1, 100, 100, all_sprites)  # Персонаж
 
     # Запуск стартового окна
@@ -78,6 +123,7 @@ if __name__ == '__main__':
     # Запуск основного игрового цикла
     while running:
         screen.fill((38, 23, 82))
+        generate_level(level)
         for event in pygame.event.get():
             # Проверка выхода
             if event.type == pygame.QUIT:
@@ -98,7 +144,7 @@ if __name__ == '__main__':
                         rotate = 'RIGHT'
                     motion = 'RIGHT'
 
-                if not jump and event.key == 119:
+                if not jump and event.key == 119 and pygame.sprite.spritecollideany(hero, ground_group):
                     jump = True
                     jumpcount = jumpmax
 
@@ -115,31 +161,60 @@ if __name__ == '__main__':
                 if event.key in [97, 100]:
                     motion = False
 
-        if hero.rect.x + 100 >= 800:
-            hero.rect.x = 15
-            hero.rect.y -= 5
-        if hero.rect.x <= 0:
-            hero.rect.x = 675
-            hero.rect.y -= 5
+        # Проверка перехода уровня
+        if hero.rect.x + 100 >= 800:  # Правая стека
+            if level == 3:
+                pass
+            elif level == 2:
+                level = 3
+                hero.rect.x = 20
+                hero.rect.y -= 5
+            elif level == 1:
+                level = 2
+                hero.rect.x = 20
+                hero.rect.y -= 5
+            elif level == 0:
+                level = 1
+                hero.rect.x = 20
+                hero.rect.y -= 5
+
+        if hero.rect.x <= 0:  # Левая стенка
+            if level == 0:
+                pass
+            elif level == 1:
+                level = 0
+                hero.rect.x = 675
+                hero.rect.y -= 5
+            elif level == 2:
+                level = 1
+                hero.rect.x = 675
+                hero.rect.y -= 5
+            elif level == 3:
+                level = 2
+                hero.rect.x = 675
+                hero.rect.y -= 5
 
         # Движение
         if motion == 'LEFT':
-            hero.rect.x -= 10
+            hero.rect.x -= velocity
         elif motion == 'RIGHT':
-            hero.rect.x += 10
+            hero.rect.x += velocity
 
         # Прыжок и падение
         if jump:
             hero.rect.y -= jumpcount
-            if not jumpcount > -jumpmax:
+            if not jumpcount > 0:
                 jump = False
                 hero.is_on_ground = True
+                g = 1
             jumpcount -= 1
         elif not pygame.sprite.spritecollideany(hero, ground_group):
-            hero.rect.y += 5
+            hero.rect.y += 5 + g
+            g += 1
 
         # Обновление экрана
         all_sprites.update()
         all_sprites.draw(screen)
+        ground_group.draw(screen)
         pygame.display.flip()
         clock.tick(FPS)

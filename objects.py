@@ -1,4 +1,5 @@
 import pygame
+from help import load_image
 
 
 class AnimatedSprite(pygame.sprite.Sprite):
@@ -74,17 +75,10 @@ class Hero(AnimatedSprite):
         super().__init__(sheet, columns, rows, x, y, *group)
 
 
-def generate_level0():
-    pass
-
-
-def generate_level1():
-    pass
-
-
-def generate_level2():
-    pass
-
-
-def generate_bossfight():
-    pass
+class Platform(pygame.sprite.Sprite):
+    def __init__(self, x: int, y: int, image, *group):
+        super().__init__(*group)
+        self.image = image
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
