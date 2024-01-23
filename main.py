@@ -2,7 +2,7 @@ import sys
 import json
 import pygame
 from help import load_image, terminate
-from objects import Ground, AnimatedSprite, Attack, Hero, Platform, Enemy
+from objects import Ground, Attack, Hero, Platform, Enemy, Boss
 
 
 # Стартовый экран
@@ -11,7 +11,9 @@ def start_screen():
                   'Жители Светогорода жили припеваючи,',
                   "пока злостные отряды тьмы не захватили",
                   "их поселение. Теперь в городе темно, а вам предстоит",
-                  "разобраться с захватчиками!"]
+                  "разобраться с захватчиками!",
+                  '',
+                  'Вам придется сделать 10 убийств, чтобы пройти в комнату с боссом']
 
     # Отображение текста
     font = pygame.font.Font(None, 30)
@@ -63,10 +65,7 @@ def end_screen():
     while True:
         for event_start in pygame.event.get():
             if event_start.type == pygame.QUIT:
-                terminate()
-            elif event_start.type == pygame.KEYDOWN or \
-                    event_start.type == pygame.MOUSEBUTTONDOWN:
-                return  # начинаем игру
+                sys.exit()
         pygame.display.flip()
         clock.tick(FPS)
 
@@ -117,8 +116,9 @@ def show_heath(health: int):
 
 # Функция генерации уровня
 def generate_level(level_number: int):
+    global boss
     level = levels[level_number]
-    platform_img = load_image('platform.png')
+    platform_img = pygame.transform.scale(load_image('platform.png'), (50, 20))
     ground_group.empty()
     enemy_group.empty()
     Ground(ground_img, ground_group, all_sprites)  # Земля
@@ -126,17 +126,21 @@ def generate_level(level_number: int):
         Platform(sprite[0], sprite[1], platform_img, ground_group)
     for sprite in level['enemies']:
         Enemy(enemy_img, 3, 1, sprite[0], sprite[1], enemy_group)
+    if 'boss' in level.keys():
+        boss = Boss(boss_img, 3, 1, attack_group, boss_group)
+    else:
+        boss = False
 
 
 # Уровни
 level0 = {
-    'platforms': [(0, 0)],
+    'platforms': [],
     'enemies': [(550, 300)]
 }
 
 level1 = {
-    'platforms': [(100, 0)],
-    'enemies': []
+    'platforms': [(700, 250), (750, 250), (450, 200), (400, 200), (0, 100), (50, 100), (100, 100), (150, 100)],
+    'enemies': [(0, 0), (400, 100)]
 }
 
 level2 = {
@@ -144,19 +148,21 @@ level2 = {
     'enemies': []
 }
 
-level3 = {
+bossfight = {
     'platforms': [(300, 0)],
-    'enemies': []
+    'enemies': [],
+    'boss': [200, 200]
 }
 
-levels = [level0, level1, level2, level3]
+levels = [level0, level1, level2, bossfight]
 
 
 # инициализация окна
 pygame.init()
 size = HEIGHT, WIDTH = 800, 450
 screen = pygame.display.set_mode(size)
-screen.fill((38, 23, 82))
+BG_COL = (85, 9, 112)
+screen.fill(BG_COL)
 FPS = 15
 clock = pygame.time.Clock()
 
@@ -166,8 +172,10 @@ icon_img = load_image('icon.png')
 icon_img_scaled = pygame.transform.scale(icon_img, (150, 150))
 hero_img = load_image('hero.png')
 hit_img = pygame.transform.scale(load_image('hit.png'), (600, 100))
-platform_img = load_image('platform.png')
+platform_img = pygame.transform.scale(load_image('platform.png'),  (50, 20))
 enemy_img = load_image('enemy.png')
+boss_img = load_image('boss.png')
+bullet_img = pygame.transform.scale(load_image('bullet.png'), (75, 50))
 
 
 # запуск игры
@@ -175,17 +183,18 @@ if __name__ == '__main__':
     # Объявление переменных
     running = True  # Игровой цикл
     motion = False  # Двигается ли персонаж
-    velocity = 50  # Скорость персонажа
+    velocity = 10  # Скорость персонажа
     rotate = 'RIGHT'  # Поворот персонажа
     jump = False  # Прыгает ли персонаж
     jumpcount = 0  # Счетчик прыжка
-    jumpmax = 12  # Максимальная высота прыжка
+    jumpmax = 18  # Максимальная высота прыжка
     health_points = 3  # Здоровье персонажа
     level = 0  # Номер уровня
     win = False  # Проверка победы
     g = 1  # Ускорение падения
     is_new_level = True  # Переходит ли персонаж на новый уровень
-    coins = 0  # Счетчик монет
+    kills = 0  # Счетчик убийств
+    boss = False
     hero_x = 100
     hero_y = 100
 
@@ -197,24 +206,25 @@ if __name__ == '__main__':
             hero_y = data['hero_cords'][1]
             health_points = data['health']
             level = data['level']
-            coins = data['coins']
+            kills = data['kills']
 
     # Создание групп спрайтов
     all_sprites = pygame.sprite.Group()
     ground_group = pygame.sprite.Group()
     attack_group = pygame.sprite.Group()
     enemy_group = pygame.sprite.Group()
+    boss_group = pygame.sprite.Group()
 
-    # Создание спрайтов
-    hero = Hero(hero_img, 9, 1, hero_x, hero_y, all_sprites)  # Персонаж
+    # Создание персонажа
+    hero = Hero(hero_img, 9, 1, hero_x, hero_y, all_sprites)
 
     # Запуск стартового окна
     start_screen()
-    screen.fill((38, 23, 82))
+    screen.fill(BG_COL)
 
     # Запуск основного игрового цикла
     while running:
-        screen.fill((38, 23, 82))
+        screen.fill(BG_COL)
         for event in pygame.event.get():
             # Проверка выхода и сохранение при выходе
             if event.type == pygame.QUIT:
@@ -222,7 +232,7 @@ if __name__ == '__main__':
                     'hero_cords': (hero.rect.x, hero.rect.y),
                     'health': health_points,
                     'level': level,
-                    'coins': coins
+                    'kills': kills
                 }
                 with open('save.json', mode='wt', encoding='utf-8') as save:
                     json.dump(save_dict, save)
@@ -267,42 +277,48 @@ if __name__ == '__main__':
         if hero.rect.x + 100 >= 800:  # Правая стека
             if level == 3:
                 hero.rect.x = 650
-            elif level == 2:
+            elif level == 2 and kills >= 10:
                 level = 3
                 hero.rect.x = 20
                 hero.rect.y -= 5
+                is_new_level = True
+            elif level == 2 and kills < 10:
+                hero.rect.x = 650
             elif level == 1:
                 level = 2
                 hero.rect.x = 20
                 hero.rect.y -= 5
+                is_new_level = True
             elif level == 0:
                 level = 1
                 hero.rect.x = 20
                 hero.rect.y -= 5
-            is_new_level = True
+                is_new_level = True
 
         if hero.rect.x <= 0:  # Левая стенка
             if level == 0:
                 hero.rect.x = 5
+                is_new_level = True
             elif level == 1:
                 level = 0
                 hero.rect.x = 675
                 hero.rect.y -= 5
+                is_new_level = True
             elif level == 2:
                 level = 1
                 hero.rect.x = 675
                 hero.rect.y -= 5
+                is_new_level = True
             elif level == 3:
-                level = 2
-                hero.rect.x = 675
-                hero.rect.y -= 5
-            is_new_level = True
+                hero.rect.x = 5
 
-        # print(len(enemy_group))
+        # Нанесение урона
         for enemy in enemy_group:
             if pygame.sprite.spritecollideany(enemy, attack_group):
                 enemy.heath_points -= 1
                 enemy_group.update()
+                if enemy.heath_points <= 0:
+                    kills += 1
                 print(enemy.heath_points)
 
         # Получение персонажем урона
@@ -343,6 +359,20 @@ if __name__ == '__main__':
         # Обновление экрана
         all_sprites.update()
         enemy_group.update()
+        if boss:
+            boss_group.update(bullet_img, (boss.rect.x, 100), enemy_group)
+            boss_group.draw(screen)
+            if boss.heath_points == 0:
+                end_screen()
+                save_dict = {
+                    'hero_cords': (100, 100),
+                    'health': 5,
+                    'level': 0,
+                    'kills': 0
+                }
+                with open('save.json', mode='wt', encoding='utf-8') as save:
+                    json.dump(save_dict, save)
+                sys.exit()
         ground_group.draw(screen)
         enemy_group.draw(screen)
         all_sprites.draw(screen)
