@@ -117,16 +117,16 @@ def show_heath(health: int):
 # Функция генерации уровня
 def generate_level(level_number: int):
     global boss
-    level = levels[level_number]
-    platform_img = pygame.transform.scale(load_image('platform.png'), (50, 20))
+    level_gen = levels[level_number]
+    platform_img_gen = pygame.transform.scale(load_image('platform.png'), (50, 20))
     ground_group.empty()
     enemy_group.empty()
     Ground(ground_img, ground_group, all_sprites)  # Земля
-    for sprite in level['platforms']:
-        Platform(sprite[0], sprite[1], platform_img, ground_group)
-    for sprite in level['enemies']:
+    for sprite in level_gen['platforms']:
+        Platform(sprite[0], sprite[1], platform_img_gen, ground_group)
+    for sprite in level_gen['enemies']:
         Enemy(enemy_img, 3, 1, sprite[0], sprite[1], enemy_group)
-    if 'boss' in level.keys():
+    if 'boss' in level_gen.keys():
         boss = Boss(boss_img, 3, 1, attack_group, boss_group)
     else:
         boss = False
