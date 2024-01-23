@@ -84,7 +84,7 @@ class Enemy(pygame.sprite.Sprite):
         self.image = self.frames[self.cur_frame]
         self.rect = self.rect.move(x, y)
         self.framecount = 0
-        self.heath_points = 3
+        self.heath_points = 12
 
     def cut_sheet(self, sheet, columns, rows):
         self.rect = pygame.Rect(0, 0, sheet.get_width() // columns,
@@ -98,16 +98,13 @@ class Enemy(pygame.sprite.Sprite):
     def update(self):
         self.cur_frame = (self.cur_frame + 1) % len(self.frames)
         self.image = self.frames[self.cur_frame]
-        if self.heath_points == 3:
+        if self.heath_points <= 12:
             self.image = self.frames[0]
-            print(self.heath_points)
-        elif self.heath_points == 2:
+        if self.heath_points <= 8:
             self.image = self.frames[1]
-            print(self.heath_points)
-        elif self.heath_points == 1:
+        if self.heath_points <= 4:
             self.image = self.frames[2]
-            print(self.heath_points)
-        elif self.heath_points == 0:
+        if self.heath_points == 0:
             self.kill()
 
 

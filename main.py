@@ -145,7 +145,8 @@ level2 = {
 }
 
 level3 = {
-    'platforms': [(300, 0)]
+    'platforms': [(300, 0)],
+    'enemies': []
 }
 
 levels = [level0, level1, level2, level3]
@@ -172,19 +173,31 @@ enemy_img = load_image('enemy.png')
 # запуск игры
 if __name__ == '__main__':
     # Объявление переменных
-    running = True
-    motion = False
-    velocity = 50
-    rotate = 'RIGHT'
-    jump = False
-    jumpcount = 0
-    jumpmax = 12
-    game_screen = 0
-    health_points = 3
-    level = 0
-    win = False
-    g = 1
-    is_new_level = False
+    running = True  # Игровой цикл
+    motion = False  # Двигается ли персонаж
+    velocity = 50  # Скорость персонажа
+    rotate = 'RIGHT'  # Поворот персонажа
+    jump = False  # Прыгает ли персонаж
+    jumpcount = 0  # Счетчик прыжка
+    jumpmax = 12  # Максимальная высота прыжка
+    health_points = 3  # Здоровье персонажа
+    level = 0  # Номер уровня
+    win = False  # Проверка победы
+    g = 1  # Ускорение падения
+    is_new_level = True  # Переходит ли персонаж на новый уровень
+    coins = 0  # Счетчик монет
+    hero_x = 100
+    hero_y = 100
+
+    # Открытие файла сохранения
+    with open('save.json') as save:
+        data = json.load(save)
+        if save:
+            hero_x = data['hero_cords'][0]
+            hero_y = data['hero_cords'][1]
+            health_points = data['health']
+            level = data['level']
+            coins = data['coins']
 
     # Создание групп спрайтов
     all_sprites = pygame.sprite.Group()
@@ -193,30 +206,27 @@ if __name__ == '__main__':
     enemy_group = pygame.sprite.Group()
 
     # Создание спрайтов
-    hero = Hero(hero_img, 9, 1, 100, 100, all_sprites)  # Персонаж
+    hero = Hero(hero_img, 9, 1, hero_x, hero_y, all_sprites)  # Персонаж
 
     # Запуск стартового окна
     start_screen()
     screen.fill((38, 23, 82))
 
-    # Открытие файла сохранения
-    with open('save.json') as save:
-        data = json.load(save)
-        if save:
-            pass
-
     # Запуск основного игрового цикла
     while running:
         screen.fill((38, 23, 82))
         for event in pygame.event.get():
-            # Проверка выхода
+            # Проверка выхода и сохранение при выходе
             if event.type == pygame.QUIT:
-                running = False
                 save_dict = {
                     'hero_cords': (hero.rect.x, hero.rect.y),
-
-
+                    'health': health_points,
+                    'level': level,
+                    'coins': coins
                 }
+                with open('save.json', mode='wt', encoding='utf-8') as save:
+                    json.dump(save_dict, save)
+                running = False
 
             # Проверка нажатия кнопок движения
             if event.type == pygame.KEYDOWN:
@@ -269,7 +279,7 @@ if __name__ == '__main__':
                 level = 1
                 hero.rect.x = 20
                 hero.rect.y -= 5
-        is_new_level = True
+            is_new_level = True
 
         if hero.rect.x <= 0:  # Левая стенка
             if level == 0:
@@ -332,10 +342,11 @@ if __name__ == '__main__':
 
         # Обновление экрана
         all_sprites.update()
+        enemy_group.update()
         ground_group.draw(screen)
         enemy_group.draw(screen)
         all_sprites.draw(screen)
         show_heath(health_points)
         pygame.display.flip()
-        print(is_new_level if is_new_level is True else 0)
+        # print(is_new_level if is_new_level is True else 0)
         clock.tick(FPS)
