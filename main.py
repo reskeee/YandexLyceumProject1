@@ -1,5 +1,6 @@
 import sys
 import json
+import time
 import pygame
 from help import load_image, terminate
 from objects import Ground, Attack, Hero, Platform, Enemy, Boss
@@ -46,7 +47,9 @@ def end_screen():
                   '...думал Герой, пока не понял, что что-то не так.',
                   "Он победил главаря темноты, но светлее не становилось.",
                   "Оказывается стемнело из-за наступления ночи, а он убил",
-                  "ни в чем неповинного босса. Вам решать, грустная ли это концовка..."]
+                  "ни в чем неповинного босса. Вам решать, грустная ли это концовка...",
+                  '',
+                  f"Время игры: {round(time.monotonic() - time_start, 3)} секунд"]
 
     # Отображение текста
     font = pygame.font.Font(None, 30)
@@ -75,7 +78,9 @@ def death_screen():
     intro_text = ['Вы погибли!',
                   'Тяжело сказать, плохая ли это концовка.',
                   "Для этого нужно пройти игру ",
-                  "Закройте окно и попробуйте заново!"]
+                  "Закройте окно и попробуйте заново!",
+                  '',
+                  f"Время игры: {round(time.monotonic() - time_start, 3)} секунд"]
 
     # Отображение текста
     font = pygame.font.Font(None, 30)
@@ -197,6 +202,7 @@ if __name__ == '__main__':
     boss = False
     hero_x = 100
     hero_y = 100
+    time_start = time.monotonic()
 
     # Открытие файла сохранения
     with open('save.json') as save:
